@@ -1,3 +1,33 @@
+import discord
+from discord import app_commands
+import random
+
+@bot.event
+async def on_ready():
+  # READ COMMENT!!!
+  try:
+    synced = await bot.tree.sync()
+    synced_list = []
+    
+    for item in synced:
+      synced_list.append(item.name)
+
+    print(f'Synced {len(synced)}/{len(bot.commands)} commands\n{synced_list}')
+  except Exception as e:
+    print(e)
+  
+  print('--------------------------------')
+  print('Version:', discord.__version__)
+  print('Truth Bot is online!')
+  print("Name: ", (bot.user.name))
+  print("ID:", (bot.user.id))
+  print(f'{datetime.now().astimezone()}')
+  print('--------------------------------')
+
+  
+  
+  
+  
 def ttt_check(result, sign):
   possible_wins = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
   won = False
