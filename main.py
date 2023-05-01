@@ -1,6 +1,9 @@
 import discord
 from discord import app_commands
 import random
+from datetime import datetime, timedelta
+
+bot = commands.Bot(case_insensitive = True, command_prefix = "?", intents=discord.Intents.all(), status = discord.Status.idle)#<- choose your own prefix
 
 @bot.event
 async def on_ready():
