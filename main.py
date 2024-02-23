@@ -1178,3 +1178,5 @@ async def tictactoe(interaction: discord.Interaction, user: discord.Member, wage
       )
      
      await interaction.edit_original_response(content = interaction.user.mention, embed = embed, view = None)
+
+bot.run(TOKEN) #<- your bot token
