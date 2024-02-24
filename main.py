@@ -12,7 +12,7 @@ class Bot(commands.Bot):
 
       print('--------------------------------')
       print('Verison:', discord.__version__)
-      print('King has entered the castle!')
+      print('Bot is now online!')
       print("Name: ", (self.user.name))
       print("ID:", (self.user.id))
       print("Time:", (datetime.now().astimezone()))
