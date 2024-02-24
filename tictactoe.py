@@ -13,6 +13,17 @@ from datetime import datetime
 ttt_status = {}
 ttt_queue = {}
 
+
+  #######################################################
+  # TTT_CHECK
+  """ 
+  "ttt_check" is called after each button is clicked to checks if a user has sucessfully made 3 matching signs in a row. This returns a bool based on the results.
+  "possible_wins" is exactly as the name suggest. It is a list that has the winning possible moves. This is looped through and campared with the "board" which was intially the dict "self.ttt_moves".
+  "won" will remain "False" until changed to "True" if 3 of the same signs are found in row
+  """
+  #######################################################
+
+
 async def ttt_check(self, interaction, board, sign):
     possible_wins = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
     won = False
