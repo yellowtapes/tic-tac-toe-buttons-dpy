@@ -5,6 +5,7 @@ import asyncio, aiohttp
 from discord import ui, app_commands
 from datetime import datetime, timedelta
 from discord.ext import commands
+from discord.ext.commands.context import Context
 
 import random
 from datetime import datetime
@@ -15,6 +16,7 @@ ttt_queue = {}
 async def ttt_check(self, interaction, board, sign):
     possible_wins = [(0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6)]
     won = False
+    message = self.message if self.message is not None else interaction.message or await interaction.original_response()
 
     for a, b, c in possible_wins:
     
@@ -42,7 +44,7 @@ async def ttt_check(self, interaction, board, sign):
       self.surrender.disabled = True
       self.timeout = None
      
-      await interaction.message.edit(content = self.turn.mention, embed = embed, view = self)
+      await message.edit(content = self.turn.mention, embed = embed, view = self)
       del(ttt_status[f'{interaction.guild.id}|{self.player1.id}'])
       del(ttt_status[f'{interaction.guild.id}|{self.player2.id}'])
       return #if someone one, we send the winning embed and remove both players from the dict so they can create another game
@@ -68,7 +70,7 @@ async def ttt_check(self, interaction, board, sign):
         color = discord.Color(0x2F3136)
       )
       
-      await interaction.message.edit(content = self.turn.mention, embed = embed, view = self)
+      await message.edit(content = self.turn.mention, embed = embed, view = self)
        
     else: # if it is as no one has one, it's an obv draw, cause there is no more possible plays pass 9.
        
@@ -91,7 +93,7 @@ async def ttt_check(self, interaction, board, sign):
        self.surrender.disabled = True
        self.timeout = None  
       
-       await interaction.message.edit(content = '', embed = embed, view = self)
+       await message.edit(content = '', embed = embed, view = self)
 
 
 
@@ -186,7 +188,8 @@ class tic_tac_toe(discord.ui.View):
         self.bottomright = False
         self.redo_clicked = False # ⬆️THESE ARE USED TO DETERMINE WHICH BUTTON WAS CLICKED ALREADY⬆️
         self.count = 0            # this is used to determine when all buttons have been clicked. If someone didn't win or lose before this reaches 9, it's an obvious draw.
-        
+        self.message = None
+
         self.ttt_moves = {0: "None", 1: "None", 2: "None",   #this is the board set up. This is what the code see's and uses to determine what changes we're made to the game
                         3: "None", 4: "None", 5: "None",     # this is also passed into "ttt_check()" as "board", visual demonstration, " ttt_check(board = self.ttt_moves, sign = ...) "
                         6: "None", 7: "None", 8: "None"
@@ -505,10 +508,6 @@ class tic_tac_toe(discord.ui.View):
          await interaction.edit_original_response(content = interaction.user.mention, embed = embed, view = None)
        
        return self.stop()
-    
-
-    # @discord.ui.button(label= '', style = discord.ButtonStyle.grey, emoji = '<:challenge:1210655565966082088>',  row = 1)
-    # async def queue(self, interaction: discord.Interaction, button: discord.ui.Button):
         
        
 
@@ -570,11 +569,15 @@ class TTT(commands.Cog):
       self.bot = bot
       
       
-    """ORIGINAL SLASH COMMAND"""
+    """
+    ORIGINAL COMMANDS
+    Supports both slash and prefix commands. They are indeed separate so you have the option to omit one and or while contructing a different experience for one or the other.
+    If you want you could invest in "hybrid.command()", not a big fan so your gonna have to implement and look into that.
+    """
 
     @app_commands.command(name = 'tictactoe', description = 'Play a classic fun game of tic tac toe')
     @app_commands.describe(user = 'Pick a user to play with.', wager = 'Choose what to bet on. eg. "Winner gets x"')
-    async def tictactoe(self, interaction: discord.Interaction, user: discord.Member, wager: str = '`None`'):
+    async def slash_tictactoe(self, interaction: discord.Interaction, user: discord.Member, wager: str = '`None`'):
        
         status = ttt_status.get(f'{interaction.guild.id}|{interaction.user.id}', None)
         
@@ -597,7 +600,7 @@ class TTT(commands.Cog):
             embed = discord.Embed(
               title = 'Active Game.',
                 url = message.jump_url,
-              description = '> You have already challenged {user.mention}.',
+              description = f'> You have already challenged {user.mention}.',
               color = discord.Color.red()
             )
             
@@ -608,13 +611,34 @@ class TTT(commands.Cog):
         
         
         if user == interaction.user:
-          return await interaction.response.send_message("Trynna play with yourself I see 👀", ephemeral =  True) #stops user from playing agaisnt themselves.
+
+          embed = discord.Embed(
+            title = 'Request Failed',
+            description = 'You cannot play against yourself.',
+            color = discord.Color.red()
+          )
+
+          return await interaction.response.send_message(embed = embed, ephemeral = True) #stops user from playing agaisnt themselves.
         
         elif user.bot == True:
-          return await interaction.response.send_message(f"{user.display_name} thought about it...and declined 🙃", ephemeral = True) #stops players from playing against bots.
+
+          embed = discord.Embed(
+            title = 'Yikes!',
+            description = f"{user.display_name} thought about it...and declined 🙃",
+            color = discord.Color.red()
+          )
+
+          return await interaction.response.send_message(embed = embed, ephemeral = True) #stops players from playing against bots.
         
         elif len(wager) > 50:
-          return await interaction.resoponse.send_message('Your wager is too long. Shorten it a little under 50 characters.', ephemeral = True) #limits the lenght of wager, so they dont write a whole paragraph.
+
+          embed = discord.Embed(
+            title = 'Request Failed.',
+            description = 'Your wager is too long. Shorten it a little under 50 characters.',
+            color = discord.Color.red()
+          )
+
+          return await interaction.response.send_message(embed = embed, ephemeral = True) #limits the lenght of wager, so they dont write a whole paragraph.
         
         embed = discord.Embed(
           title = f'Tic Tac Toe',
@@ -656,6 +680,121 @@ class TTT(commands.Cog):
           
           await interaction.edit_original_response(content = interaction.user.mention, embed = embed, view = None)
           del(ttt_status[f'{interaction.guild.id}|{interaction.user.id}'])
+
+
+    @commands.command(name = 'tictactoe', aliases = ['ttt'])
+    @app_commands.describe(user = 'Pick a user to play with.', wager = 'Choose what to bet on. eg. "Winner gets x"')
+    async def prefix_tictactoe(self, ctx: Context, user: discord.Member, *, wager: str = '`None`'):
+       
+        status = ttt_status.get(f'{ctx.guild.id}|{ctx.author.id}', None)
+        
+        if status is not None and type(status) is str:
+          
+          embed = discord.Embed(
+             title = 'Pending Request',
+             description = f'> You currently have a pending request to {status}.',
+             color = discord.Color.red()
+          )
+
+          return await ctx.send(embed = embed, delete_after = 15.0)
+
+        elif status is not None:
+
+          try:
+            channel = self.bot.get_channel(status[0])
+            message = channel.fetch_message(status[1])
+
+            embed = discord.Embed(
+              title = 'Active Game.',
+                url = message.jump_url,
+              description = f'> You have already challenged {user.mention}.',
+              color = discord.Color.red()
+            )
+            
+            return await ctx.send(embed = embed, delete_after = 15.0)
+          
+          except:
+             del(ttt_status[f'{ctx.guild.id}|{ctx.author.id}'])
+        
+        
+        if user == ctx.author:
+
+          embed = discord.Embed(
+            title = 'Request Failed',
+            description = 'You cannot play against yourself.',
+            color = discord.Color.red()
+          )
+
+          return await ctx.send(embed = embed, delete_after = 15.0)
+        
+        elif user.bot == True:
+
+          embed = discord.Embed(
+            title = 'Yikes!',
+            description = f"{user.display_name} thought about it...and declined 🙃",
+            color = discord.Color.red()
+          )
+
+          return await ctx.send(embed = embed, delete_after = 15.0)
+        
+        elif len(wager) > 50:
+
+          embed = discord.Embed(
+            title = 'Request Failed.',
+            description = 'Your wager is too long. Shorten it a little under 50 characters.',
+            color = discord.Color.red()
+          )
+
+          return await ctx.send(embed = embed, delete_after = 15.0)
+        
+        embed = discord.Embed(
+          title = f'Tic Tac Toe',
+          description = f"{ctx.author.mention} is challenging you to a game of tic tac toe.\n\n*Wager*:\n> {wager}\n\n*auto-declines {discord.utils.format_dt(datetime.now().astimezone() + timedelta(seconds = 120.0), style = 'R')}*",
+          color = discord.Color(0x2F3136)
+         )
+        
+        request = ttt_request(ctx.author, user, ctx)
+        message = await ctx.send(content = user.mention, embed = embed, view = request)
+        ttt_status[f'{ctx.guild.id}|{ctx.author.id}'] = user.mention
+        await request.wait()
+     
+        if request.accepted == True:
+    
+          sign = random.choice(['❌', '⭕'])
+          player1 = ctx.author
+          player2 = user
+          turn = random.choice([player1, player2])
+      
+          view = tic_tac_toe(player1, player2, turn, sign, wager, ctx)
+          view.message = message
+      
+      
+          embed = discord.Embed(
+            title = f'Tic Tac Toe\n{player1.display_name} vs {player2.display_name}',
+            description = f"It's {turn.mention}'s turn! You are {sign}\n*Turn ends {discord.utils.format_dt(datetime.now().astimezone() + timedelta(seconds = 60.0), style = 'R')}*\n\n*Wager*:\n> {wager}",
+            color = discord.Color(0x2F3136)
+           )
+            
+          await message.edit(content = turn.mention, embed = embed, view = view)
+          ttt_status[f'{ctx.guild.id}|{ctx.author.id}'] = (ctx.channel.id, message.id)
+          ttt_status[f'{ctx.guild.id}|{request.requested.id}'] = (ctx.channel.id, message.id)
+        
+        elif request.declined == True:
+          
+          embed = discord.Embed(
+            title = 'Challenge Declined',
+            color = discord.Color.red()
+           )
+          
+          await ctx.send(content = ctx.author.mention, embed = embed, view = None)
+          del(ttt_status[f'{ctx.guild.id}|{ctx.author.id}'])
+    
+
+    async def cog_load(self) -> None:
+       print(f'{self.__class__.__name__} ✅')
+    
+    async def cog_unload(self) -> None:
+       print(f'{self.__class__.__name__} ❎')
 
 
 async def setup(bot):
