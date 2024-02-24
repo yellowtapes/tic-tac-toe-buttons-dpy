@@ -3,9 +3,8 @@ import discord
 class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix = ['!'],
-            intents = discord.Intents.all(),
-            status = discord.Status.do_not_disturb
+            command_prefix = ['!'], #if this errors, remove the list.
+            intents = discord.Intents.all()
         )
     
     async def setup_hook(self):
